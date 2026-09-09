@@ -20,8 +20,10 @@ namespace SmartBed.UI
 
         private ISmartBedDataSource source;
         private RawImage heatImage;
+        private RawImage overlayImage;
         private Text titleText, postureText, metricsText, airbagText, frameText;
         private Texture2D heatTex;
+        private Texture2D overlayTex;
 
         private void Awake()
         {
@@ -59,6 +61,10 @@ namespace SmartBed.UI
             matrix = PressureCalculator.EnsureLength(matrix);
             heatTex = PressureHeatmap.Build(heatTex, matrix);
             heatImage.texture = heatTex;
+
+            // 1b) 支撑叠加层（身体部位框 + 气囊充气着色）
+            overlayTex = SupportOverlay.Build(overlayTex, msg.airbags, msg.bodyRegions);
+            overlayImage.texture = overlayTex;
 
             // 2) 压力指标（本地计算，权威来源）
             var metrics = PressureCalculator.Compute(matrix);
@@ -125,6 +131,18 @@ namespace SmartBed.UI
             texRt.anchorMax = Vector2.one;
             texRt.offsetMin = new Vector2(10, 10);
             texRt.offsetMax = new Vector2(-10, -10);
+
+            // 支撑叠加层（与热力图同区域，显示身体部位框 + 气囊充气着色）
+            var ovGo = new GameObject("Overlay", typeof(RectTransform));
+            ovGo.transform.SetParent(heatPanel, false);
+            overlayImage = ovGo.AddComponent<RawImage>();
+            overlayImage.color = Color.white;
+            overlayImage.raycastTarget = false;
+            var ovRt = overlayImage.rectTransform;
+            ovRt.anchorMin = Vector2.zero;
+            ovRt.anchorMax = Vector2.one;
+            ovRt.offsetMin = new Vector2(10, 10);
+            ovRt.offsetMax = new Vector2(-10, -10);
 
             // 右侧信息栏
             var info = UiHelper.CreatePanel(root, "Info", new Color(0.08f, 0.08f, 0.11f), new Vector2(520, 780));

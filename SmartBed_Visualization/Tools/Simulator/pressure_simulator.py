@@ -20,6 +20,7 @@ SmartBed 数据模拟器（M1）—— 标准库版（无需 flask/numpy）
 
 import argparse
 import json
+import math
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -104,6 +105,50 @@ def compute_metrics(frame, threshold=10.0):
     }
 
 
+BODY_PARTS = ["肩", "背", "腰", "臀", "大腿"]
+
+
+def derive_body_regions(frame, raw_threshold=25.0):
+    """
+    从压力帧派生 5 个身体部位框（肩/背/腰/臀/大腿）。
+    先求接触区域边界框，再把纵向(y/行)均分为 5 段。坐标为 x∈0..24、y∈0..44。
+    frame 为原始读数 0-300 的 44x24。仅作演示占位；后续替换为 body_part 模型真实输出。
+    """
+    ys, xs = [], []
+    for r in range(ROWS):
+        for c in range(COLS):
+            if frame[r][c] > raw_threshold:
+                ys.append(r)
+                xs.append(c)
+    if not ys:
+        return []
+    y0, y1 = min(ys), max(ys)
+    x0, x1 = min(xs), max(xs)
+    span = (y1 - y0 + 1) / len(BODY_PARTS)
+    regions = []
+    for i, name in enumerate(BODY_PARTS):
+        ys_ = int(round(y0 + i * span))
+        ye_ = int(round(y0 + (i + 1) * span)) - 1
+        regions.append({
+            "part": name,
+            "x1": x0,
+            "y1": max(0, ys_),
+            "x2": x1,
+            "y2": min(ROWS - 1, ye_),
+        })
+    return regions
+
+
+def current_airbags(t):
+    """返回随时间轻微变化的气囊充气量，模拟“调节支撑”。数值为 0-100。"""
+    base = [80, 80, 68, 62, 72, 66, 58, 64]
+    out = []
+    for i, b in enumerate(base):
+        v = b + 15 * math.sin(t * 0.5 + i * 0.7)
+        out.append({"id": DEFAULT_AIRBAGS[i], "level": round(max(0.0, min(100.0, v)), 0)})
+    return out
+
+
 class FrameProducer:
     """后台线程：按 rate 推进帧序号，保存“当前最新帧”。"""
 
@@ -125,8 +170,8 @@ class FrameProducer:
             "pressure": flat,
             "sleepPosture": self.pose_name,
             "sleepPoseIndex": self.pose_index,
-            "bodyRegions": [],  # M1 阶段为空；后续可从 body_part 结果填充
-            "airbags": [{"id": b, "level": 70.0} for b in DEFAULT_AIRBAGS],
+            "bodyRegions": derive_body_regions(frame),
+            "airbags": current_airbags(time.time()),
             "metrics": compute_metrics([[normalize(v) for v in row] for row in frame]),
         }
 
