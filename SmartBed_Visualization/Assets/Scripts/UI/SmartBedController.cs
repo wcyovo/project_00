@@ -24,11 +24,17 @@ namespace SmartBed.UI
         private RawImage overlayImage;
         private RawImage airbagChart;
         private RawImage sensorChart;
+        private RawImage bed3dImage;
+        private Bed3DView bed3d;
         private Text titleText, postureText, metricsText, airbagText, frameText;
         private Texture2D heatTex;
         private Texture2D overlayTex;
         private Texture2D airbagChartTex;
         private Texture2D sensorChartTex;
+
+        // 中部图表尺寸（与 AddChartBlock 的 panel 尺寸对应）
+        private const int ChartW = 440;
+        private const int ChartH = 224;
 
         // R4 动态曲线：滚动历史
         [Tooltip("曲线最大历史帧数")] public int maxHistory = 90;
@@ -74,6 +80,9 @@ namespace SmartBed.UI
             matrix = PressureCalculator.EnsureLength(matrix);
             heatTex = PressureHeatmap.Build(heatTex, matrix);
             heatImage.texture = heatTex;
+
+            // 1c) 3D 床垫形变
+            if (bed3d != null) bed3d.UpdatePressure(matrix);
 
             // 1b) 支撑叠加层（身体部位框 + 气囊充气着色）
             overlayTex = SupportOverlay.Build(overlayTex, msg.airbags, msg.bodyRegions);
@@ -128,12 +137,12 @@ namespace SmartBed.UI
             // 气囊曲线
             var airColors = new Color[AirbagIds.Length];
             for (int i = 0; i < AirbagIds.Length; i++) airColors[i] = ZoneMap.ColorFor(AirbagIds[i]);
-            airbagChartTex = ChartRenderer.Draw(airbagChartTex, ToSeries(levelHistory, AirbagIds.Length), airColors, 440, 300, 100f);
+            airbagChartTex = ChartRenderer.Draw(airbagChartTex, ToSeries(levelHistory, AirbagIds.Length), airColors, ChartW, ChartH, 100f);
             airbagChart.texture = airbagChartTex;
 
             // 传感点压力曲线
             var sensorColors = new Color[] { Color.white, Color.magenta, Color.cyan };
-            sensorChartTex = ChartRenderer.Draw(sensorChartTex, ToSeries(pressHistory, SensorIndices.Length), sensorColors, 440, 300, 100f);
+            sensorChartTex = ChartRenderer.Draw(sensorChartTex, ToSeries(pressHistory, SensorIndices.Length), sensorColors, ChartW, ChartH, 100f);
             sensorChart.texture = sensorChartTex;
         }
 
@@ -217,19 +226,25 @@ namespace SmartBed.UI
 
             SetupInfoPanel(info, font);
 
-            // R4 曲线（中间空列）
-            airbagChart = AddChartBlock(root, font, "AirbagChart", "气囊充气量曲线 (0-100%)", new Vector2(-15, 200));
-            sensorChart = AddChartBlock(root, font, "SensorChart", "传感点压力曲线 (0-100 kPa)", new Vector2(-15, -180));
+            // 中部列：3D 床垫（上） + 气囊曲线（中） + 传感点曲线（下）
+            var size = new Vector2(460, 240);
+            bed3dImage = AddChartBlock(root, font, "Bed3D", "3D 床垫支撑形变", new Vector2(-15, 250), size);
+            var bedGo = new GameObject("Bed3D");
+            bed3d = bedGo.AddComponent<Bed3DView>();
+            bed3dImage.texture = bed3d.RenderTexture;
+
+            airbagChart = AddChartBlock(root, font, "AirbagChart", "气囊充气量曲线 (0-100%)", new Vector2(-15, 10), size);
+            sensorChart = AddChartBlock(root, font, "SensorChart", "传感点压力曲线 (0-100 kPa)", new Vector2(-15, -230), size);
         }
 
-        private RawImage AddChartBlock(RectTransform root, Font font, string name, string title, Vector2 center)
+        private RawImage AddChartBlock(RectTransform root, Font font, string name, string title, Vector2 center, Vector2 size)
         {
-            var panel = UiHelper.CreatePanel(root, name, new Color(0.06f, 0.06f, 0.10f), new Vector2(460, 340));
+            var panel = UiHelper.CreatePanel(root, name, new Color(0.06f, 0.06f, 0.10f), size);
             panel.anchoredPosition = center;
 
             var t = UiHelper.CreateText(panel, name + "Title", title, font, 16, new Color(0.8f, 0.8f, 0.8f), TextAnchor.MiddleCenter);
-            t.rectTransform.anchoredPosition = new Vector2(0, 150);
-            t.rectTransform.sizeDelta = new Vector2(440, 30);
+            t.rectTransform.anchoredPosition = new Vector2(0, size.y * 0.5f - 15);
+            t.rectTransform.sizeDelta = new Vector2(size.x - 20, 30);
 
             var go = new GameObject(name + "Img", typeof(RectTransform));
             go.transform.SetParent(panel, false);
