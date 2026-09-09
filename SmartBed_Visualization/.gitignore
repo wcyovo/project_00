@@ -1,0 +1,97 @@
+# ===========================================================
+# Unity .gitignore (标准版，基于 GitHub Unity.gitignore)
+# ===========================================================
+
+# [Core] Unity 生成的临时/缓存目录
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+
+# Asset meta data（仅在手动控制时启用下面的选项）
+# !/[Aa]ssets/**/*.meta
+
+# 特定平台构建产物（按需保留/取消注释）
+# /[Bb]uild/[Pp]layer/
+# /[Bb]uild/[Pp]layer-Android/
+# /[Bb]uild/[Pp]layer-iOS/
+# /[Bb]uild/[Pp]layer-WebGL/
+
+# ===========================================================
+# Visual Studio / IDE 生成文件
+# ===========================================================
+
+# Visual Studio 缓存/选项
+/[Aa]ssets/**/*.csproj
+/[Aa]ssets/**/*.sln
+/[Aa]ssets/**/*.suo
+/[Aa]ssets/**/*.user
+/[Aa]ssets/**/*.userprefs
+/*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+*.csproj.iml
+*.unityproj
+*.hdrproj
+.vs/
+
+# ===========================================================
+# 系统 / 编辑器杂项
+# ===========================================================
+
+# OS 生成文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 崩溃 / 调试文件
+sysinfo.txt
+*.crashdump
+
+# ===========================================================
+# 依赖与包管理
+# ===========================================================
+
+# NuGet
+*.nupkg
+.nuget/
+packages/
+
+# Node (若在项目中使用 npm/yarn 工具链)
+node_modules/
+
+# ===========================================================
+# 其它（按项目需要取消注释）
+# ===========================================================
+
+# 录屏 / 测试截图等大文件
+# *.mp4
+# *.png
+# *.jpg
+
+# 日志
+*.log
