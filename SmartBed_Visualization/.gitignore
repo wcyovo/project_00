@@ -76,10 +76,8 @@ sysinfo.txt
 # 依赖与包管理
 # ===========================================================
 
-# NuGet
-*.nupkg
-.nuget/
-packages/
+# 注意：不要添加裸 "packages/" 规则 —— 在 Windows 大小写不敏感文件系统上
+# 会误伤 Unity 必需的 Packages/manifest.json 与 packages-lock.json，导致工程无法打开。
 
 # Node (若在项目中使用 npm/yarn 工具链)
 node_modules/
