@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using SmartBed.Data;
@@ -21,9 +22,21 @@ namespace SmartBed.UI
         private ISmartBedDataSource source;
         private RawImage heatImage;
         private RawImage overlayImage;
+        private RawImage airbagChart;
+        private RawImage sensorChart;
         private Text titleText, postureText, metricsText, airbagText, frameText;
         private Texture2D heatTex;
         private Texture2D overlayTex;
+        private Texture2D airbagChartTex;
+        private Texture2D sensorChartTex;
+
+        // R4 动态曲线：滚动历史
+        [Tooltip("曲线最大历史帧数")] public int maxHistory = 90;
+        private readonly List<float[]> levelHistory = new List<float[]>();   // 每条 = 8 气囊
+        private readonly List<float[]> pressHistory = new List<float[]>();   // 每条 = k 个传感点
+        private static readonly int[] AirbagIds = { 12, 13, 40, 41, 42, 64, 65, 66 };
+        // 供曲线展示的代表性传感点：肩 / 腰 / 臀（沿纵向中线的网格索引 = row*24+col）
+        private static readonly int[] SensorIndices = { 6 * 24 + 12, 18 * 24 + 12, 30 * 24 + 12 };
 
         private void Awake()
         {
@@ -83,6 +96,60 @@ namespace SmartBed.UI
             frameText.text =
                 "帧号: " + msg.frame +
                 "   时间: " + System.DateTimeOffset.FromUnixTimeMilliseconds((long)(msg.timestamp * 1000)).LocalDateTime.ToString("HH:mm:ss");
+
+            // 6) R4 动态曲线：追加历史并重绘
+            AppendHistory(msg, matrix);
+            DrawCharts();
+        }
+
+        private void AppendHistory(PressureMessage msg, float[] matrix)
+        {
+            // 气囊量
+            float[] levels = new float[AirbagIds.Length];
+            if (msg.airbags != null)
+            {
+                for (int i = 0; i < AirbagIds.Length && i < msg.airbags.Count; i++)
+                    levels[i] = msg.airbags[i].level;
+            }
+            levelHistory.Add(levels);
+
+            // 传感点压力
+            float[] pressures = new float[SensorIndices.Length];
+            for (int j = 0; j < SensorIndices.Length; j++)
+                pressures[j] = (SensorIndices[j] >= 0 && SensorIndices[j] < matrix.Length) ? matrix[SensorIndices[j]] : 0f;
+            pressHistory.Add(pressures);
+
+            if (levelHistory.Count > maxHistory) levelHistory.RemoveAt(0);
+            if (pressHistory.Count > maxHistory) pressHistory.RemoveAt(0);
+        }
+
+        private void DrawCharts()
+        {
+            // 气囊曲线
+            var airColors = new Color[AirbagIds.Length];
+            for (int i = 0; i < AirbagIds.Length; i++) airColors[i] = ZoneMap.ColorFor(AirbagIds[i]);
+            airbagChartTex = ChartRenderer.Draw(airbagChartTex, ToSeries(levelHistory, AirbagIds.Length), airColors, 440, 300, 100f);
+            airbagChart.texture = airbagChartTex;
+
+            // 传感点压力曲线
+            var sensorColors = new Color[] { Color.white, Color.magenta, Color.cyan };
+            sensorChartTex = ChartRenderer.Draw(sensorChartTex, ToSeries(pressHistory, SensorIndices.Length), sensorColors, 440, 300, 100f);
+            sensorChart.texture = sensorChartTex;
+        }
+
+        // 把历史列表转成 ChartRenderer 需要的“按序列”的数组集
+        private static List<float[]> ToSeries(List<float[]> history, int seriesCount)
+        {
+            var result = new List<float[]>();
+            int n = history.Count;
+            if (n == 0) return result;
+            for (int c = 0; c < seriesCount; c++)
+            {
+                var arr = new float[n];
+                for (int k = 0; k < n; k++) arr[k] = history[k][c];
+                result.Add(arr);
+            }
+            return result;
         }
 
         private static string BuildAirbagText(System.Collections.Generic.List<Airbag> airbags)
@@ -149,6 +216,32 @@ namespace SmartBed.UI
             info.anchoredPosition = new Vector2(480, 0);
 
             SetupInfoPanel(info, font);
+
+            // R4 曲线（中间空列）
+            airbagChart = AddChartBlock(root, font, "AirbagChart", "气囊充气量曲线 (0-100%)", new Vector2(-15, 200));
+            sensorChart = AddChartBlock(root, font, "SensorChart", "传感点压力曲线 (0-100 kPa)", new Vector2(-15, -180));
+        }
+
+        private RawImage AddChartBlock(RectTransform root, Font font, string name, string title, Vector2 center)
+        {
+            var panel = UiHelper.CreatePanel(root, name, new Color(0.06f, 0.06f, 0.10f), new Vector2(460, 340));
+            panel.anchoredPosition = center;
+
+            var t = UiHelper.CreateText(panel, name + "Title", title, font, 16, new Color(0.8f, 0.8f, 0.8f), TextAnchor.MiddleCenter);
+            t.rectTransform.anchoredPosition = new Vector2(0, 150);
+            t.rectTransform.sizeDelta = new Vector2(440, 30);
+
+            var go = new GameObject(name + "Img", typeof(RectTransform));
+            go.transform.SetParent(panel, false);
+            var img = go.AddComponent<RawImage>();
+            img.color = Color.white;
+            img.raycastTarget = false;
+            var rt = img.rectTransform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(8, 8);
+            rt.offsetMax = new Vector2(-8, -8);
+            return img;
         }
 
         private void SetupInfoPanel(RectTransform info, Font font)
