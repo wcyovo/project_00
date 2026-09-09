@@ -8,6 +8,7 @@
 |---|---|
 | [data-interface-protocol.md](data-interface-protocol.md) | **实时数据接口协议**：Unity 可视化端与算法/数据端的通信字段定义（团队对齐基线） |
 | [mattress-spec.md](mattress-spec.md) | **床垫布局与数据规格**：压力点阵、睡姿类别、气囊分区、身体部位划分规格 |
+| [visualization.md](visualization.md) | **可视化系统说明**：功能-架构映射、运行步骤、Windows 打包方式 |
 
 ## 团队成员分工（参考）
 
