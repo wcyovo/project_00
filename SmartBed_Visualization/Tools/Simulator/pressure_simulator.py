@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SmartBed 数据模拟器（M1）
--------------------------
+SmartBed 数据模拟器（M1）—— 标准库版（无需 flask/numpy）
+-----------------------------------------------------------
 回放仓库内真实的压力帧数据（如 data/raw/SAI/SAI_1.txt），
 将“当前最新帧”以 JSON 实时暴露给 Unity 可视化端（HTTP 轮询）。
+
+只用 Python 标准库：运行前仅需一个可用的 Python 3 解释器即可。
 
 用法（在仓库根目录运行）：
     python SmartBed_Visualization/Tools/Simulator/pressure_simulator.py
     python SmartBed_Visualization/Tools/Simulator/pressure_simulator.py \
         --source SAI/SAI_1.txt --rate 5 --port 5001 --loop
 
-依赖：pip install flask numpy
 接口：
     GET /stream   -> 当前帧 JSON（见 docs/data-interface-protocol.md）
     GET /health   -> 健康检查
@@ -21,12 +22,10 @@ import argparse
 import json
 import threading
 import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-import numpy as np
-from flask import Flask, jsonify
-
-# ---- 从仓库 src/data_loader.py 对齐的常量 ----
+# ---- 与仓库 src/data_loader.py 对齐的常量 ----
 ROWS, COLS = 44, 24
 SLEEP_NOTE = ["仰卧", "俯卧", "左侧卧", "右侧卧"]
 POSTURE_MAP = {
@@ -41,16 +40,7 @@ for i, (name, nums) in enumerate(POSTURE_MAP.items()):
         NUM_TO_POSE[n] = (i, name)  # (sleepPoseIndex, sleepPosture)
 
 # 8 个气囊默认充气量（M1 阶段固定；后续可替换为弱力区域增强算法输出）
-DEFAULT_AIRBAGS = [
-    {"id": 12, "level": 80},
-    {"id": 13, "level": 80},
-    {"id": 40, "level": 68},
-    {"id": 41, "level": 62},
-    {"id": 42, "level": 72},
-    {"id": 64, "level": 66},
-    {"id": 65, "level": 58},
-    {"id": 66, "level": 64},
-]
+DEFAULT_AIRBAGS = [12, 13, 40, 41, 42, 64, 65, 66]
 
 
 def parse_filename(filename: str):
@@ -65,7 +55,7 @@ def parse_filename(filename: str):
 
 
 def load_frames(filepath: Path):
-    """读取单个 txt，返回帧列表（每帧 44x24 float）。帧间以空行分隔。"""
+    """读取单个 txt，返回帧列表（每帧为 44x24 的 list[list[float]]）。帧间以空行分隔。"""
     text = filepath.read_text(encoding="utf-8").strip()
     if not text:
         return []
@@ -81,30 +71,36 @@ def load_frames(filepath: Path):
                 rows.append(values)
         if not rows:
             continue
-        arr = np.array(rows)
-        if arr.shape == (ROWS, COLS):
-            frames.append(arr)
-        else:
-            try:
-                frames.append(arr.reshape(ROWS, COLS))
-            except ValueError:
-                pass
+        flat = [v for row in rows for v in row]
+        if len(flat) == ROWS * COLS:
+            # 按 44x24 重塑（行优先）
+            frames.append([flat[r * COLS:(r + 1) * COLS] for r in range(ROWS)])
     return frames
 
 
-def normalize(frame: np.ndarray, lo=0.0, hi=300.0):
+def normalize(value, hi=300.0):
     """原始读数 0-300 归一到 0-100 kPa"""
-    frame = np.asarray(frame, dtype=float)
-    frame = np.clip(frame, 0.0, hi)
-    return frame / hi * 100.0
+    return max(0.0, min(hi, value)) / hi * 100.0
 
 
-def compute_metrics(frame: np.ndarray, threshold=10.0):
-    flat = frame.ravel()
+def compute_metrics(frame, threshold=10.0):
+    """frame 为 44x24 list[list[float]]（已归一化 0-100）"""
+    total = 0.0
+    count = 0
+    mx = 0.0
+    above = 0
+    for row in frame:
+        for v in row:
+            if v > mx:
+                mx = v
+            total += v
+            count += 1
+            if v > threshold:
+                above += 1
     return {
-        "maxPressure": round(float(frame.max()), 2),
-        "avgPressure": round(float(frame.mean()), 2),
-        "contactIndex": round(float((flat > threshold).sum()) / flat.size, 3),
+        "maxPressure": round(mx, 2),
+        "avgPressure": round(total / count, 2) if count else 0.0,
+        "contactIndex": round(above / count, 3) if count else 0.0,
     }
 
 
@@ -121,17 +117,17 @@ class FrameProducer:
         self.lock = threading.Lock()
 
     def build_message(self, idx):
-        frame = normalize(self.frames[idx])
-        flat = frame.ravel().tolist()
+        frame = self.frames[idx]
+        flat = [round(normalize(v), 2) for row in frame for v in row]
         return {
             "timestamp": time.time(),
             "frame": idx,
-            "pressure": [round(v, 2) for v in flat],
+            "pressure": flat,
             "sleepPosture": self.pose_name,
             "sleepPoseIndex": self.pose_index,
             "bodyRegions": [],  # M1 阶段为空；后续可从 body_part 结果填充
-            "airbags": DEFAULT_AIRBAGS,
-            "metrics": compute_metrics(frame),
+            "airbags": [{"id": b, "level": 70.0} for b in DEFAULT_AIRBAGS],
+            "metrics": compute_metrics([[normalize(v) for v in row] for row in frame]),
         }
 
     def run(self):
@@ -150,7 +146,7 @@ class FrameProducer:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SmartBed 压力数据模拟器")
+    parser = argparse.ArgumentParser(description="SmartBed 压力数据模拟器（标准库版）")
     parser.add_argument("--data-dir", type=str, default=None,
                         help="data/raw 目录；默认自动定位到仓库 data/raw")
     parser.add_argument("--source", type=str, default="SAI/SAI_1.txt",
@@ -176,31 +172,41 @@ def main():
     if not frames:
         print(f"[错误] {filepath} 未解析出任何帧")
         return
-    print(f"[信息] 已加载 {len(frames)} 帧，尺寸 {frames[0].shape}（{ROWS}x{COLS}）")
+    print(f"[信息] 已加载 {len(frames)} 帧，尺寸 {ROWS}x{COLS}")
 
     name, action = parse_filename(filepath.name)
     pose_index, pose_name = NUM_TO_POSE.get(action, (0, "仰卧"))
     print(f"[信息] 用户={name} 动作={action} 睡姿={pose_name}({pose_index})")
 
     producer = FrameProducer(frames, pose_index, pose_name, args.rate, args.loop)
-    t = threading.Thread(target=producer.run, daemon=True)
-    t.start()
+    threading.Thread(target=producer.run, daemon=True).start()
 
-    app = Flask(__name__)
+    class Handler(BaseHTTPRequestHandler):
+        def _send(self, obj, status=200):
+            body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
-    @app.route("/stream")
-    def stream():
-        msg = producer.snapshot()
-        if msg is None:
-            return jsonify({"error": "尚未生成数据"}), 503
-        return jsonify(msg)
+        def do_GET(self):
+            if self.path.split("?")[0] == "/stream":
+                msg = producer.snapshot()
+                if msg is None:
+                    self._send({"error": "尚未生成数据"}, 503)
+                else:
+                    self._send(msg)
+            elif self.path.split("?")[0] == "/health":
+                self._send({"ok": True, "frames": len(frames), "rate": args.rate})
+            else:
+                self._send({"error": "未找到"}, 404)
 
-    @app.route("/health")
-    def health():
-        return jsonify({"ok": True, "frames": len(frames), "rate": args.rate})
+        def log_message(self, fmt, *args):
+            print(f"[server] {self.address_string()} - {fmt % args}")
 
     print(f"[信息] 模拟器已启动：http://127.0.0.1:{args.port}/stream")
-    app.run(host="0.0.0.0", port=args.port, debug=False)
+    ThreadingHTTPServer(("0.0.0.0", args.port), Handler).serve_forever()
 
 
 if __name__ == "__main__":
