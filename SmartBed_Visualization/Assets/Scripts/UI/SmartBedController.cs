@@ -173,12 +173,13 @@ namespace SmartBed.UI
 
             // 气囊
             var aTitle = UiHelper.CreateText(info, "AirTitle", "气囊状态", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
-            aTitle.rectTransform.anchoredPosition = new Vector2(-230, 40);
-            aTitle.rectTransform.sizeDelta = new Vector2(200, 30);
+            aTitle.rectTransform.anchoredPosition = new Vector2(-240, 120);
+            aTitle.rectTransform.sizeDelta = new Vector2(220, 30);
 
-            airbagText = UiHelper.CreateText(info, "Airbags", "--", font, 20, Color.white, TextAnchor.UpperLeft);
-            airbagText.rectTransform.anchoredPosition = new Vector2(-230, 10);
-            airbagText.rectTransform.sizeDelta = new Vector2(360, 160);
+            airbagText = UiHelper.CreateText(info, "Airbags", "--", font, 18, Color.white, TextAnchor.UpperLeft);
+            airbagText.rectTransform.anchoredPosition = new Vector2(-240, 90);
+            airbagText.rectTransform.sizeDelta = new Vector2(400, 240);
+            airbagText.horizontalOverflow = HorizontalWrapMode.Overflow;
 
             // 帧号
             frameText = UiHelper.CreateText(info, "Frame", "--", font, 16, new Color(0.6f, 0.6f, 0.6f), TextAnchor.MiddleCenter);
