@@ -196,14 +196,23 @@ namespace SmartBed.UI
             var root = UiHelper.CreatePanel(canvasGo.transform, "Root", Color.black, new Vector2(1600, 900));
             StretchFull(root);
 
-            // 标题
-            titleText = UiHelper.CreateText(root, "Title", "智能床垫实时可视化", font, 34, Color.white, TextAnchor.MiddleCenter);
+            // 标题（架构：大屏可视化系统）
+            titleText = UiHelper.CreateText(root, "Title", "大屏可视化系统", font, 34, Color.white, TextAnchor.MiddleCenter);
             titleText.rectTransform.anchoredPosition = new Vector2(0, 410);
             titleText.rectTransform.sizeDelta = new Vector2(900, 50);
+
+            var subtitle = UiHelper.CreateText(root, "SubTitle", "智能床垫实时数据可视化", font, 18, new Color(0.8f, 0.8f, 0.8f), TextAnchor.MiddleCenter);
+            subtitle.rectTransform.anchoredPosition = new Vector2(0, 382);
+            subtitle.rectTransform.sizeDelta = new Vector2(900, 26);
 
             // 热力图（背景面板 + 子级纹理）
             var heatPanel = UiHelper.CreatePanel(root, "HeatPanel", new Color(0.12f, 0.12f, 0.16f), new Vector2(480, 880));
             heatPanel.anchoredPosition = new Vector2(-500, -30);
+
+            // 分区标签：床垫受压数据
+            var heatTitle = UiHelper.CreateText(root, "HeatTitle", "床垫受压数据", font, 20, new Color(0.98f, 0.85f, 0.4f), TextAnchor.MiddleCenter);
+            heatTitle.rectTransform.anchoredPosition = new Vector2(-640, 432);
+            heatTitle.rectTransform.sizeDelta = new Vector2(240, 30);
             var texGo = new GameObject("Tex", typeof(RectTransform));
             texGo.transform.SetParent(heatPanel, false);
             heatImage = texGo.AddComponent<RawImage>();
@@ -272,8 +281,8 @@ namespace SmartBed.UI
             userText.rectTransform.anchoredPosition = new Vector2(-110, 372);
             userText.rectTransform.sizeDelta = new Vector2(360, 30);
 
-            // 睡姿
-            var poseTitle = UiHelper.CreateText(info, "PoseTitle", "当前睡姿", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
+            // 睡姿（架构：用户睡姿）
+            var poseTitle = UiHelper.CreateText(info, "PoseTitle", "用户睡姿", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
             poseTitle.rectTransform.anchoredPosition = new Vector2(-230, 340);
             poseTitle.rectTransform.sizeDelta = new Vector2(200, 30);
 
@@ -290,8 +299,8 @@ namespace SmartBed.UI
             metricsText.rectTransform.anchoredPosition = new Vector2(-110, 160);
             metricsText.rectTransform.sizeDelta = new Vector2(360, 140);
 
-            // 气囊
-            var aTitle = UiHelper.CreateText(info, "AirTitle", "气囊状态", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
+            // 气囊（架构：气垫状态）
+            var aTitle = UiHelper.CreateText(info, "AirTitle", "气垫状态", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
             aTitle.rectTransform.anchoredPosition = new Vector2(-240, 120);
             aTitle.rectTransform.sizeDelta = new Vector2(220, 30);
 
