@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>部位划分可视化</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial;
+            background: #f0f2f5;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .row select,
+        .row input,
+        .row button {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        .row button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .row button:hover {
+            background: #1557b0;
+        }
+        .tab {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .tab button {
+            padding: 8px 20px;
+            border: 1px solid #ccc;
+            background: #f0f2f5;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .tab button.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+        }
+        .panel {
+            display: none;
+        }
+        .panel.active {
+            display: block;
+        }
+        .image-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .image-container img {
+            max-width: 100%;
+            max-height: 700px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .info {
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+            margin-top: 8px;
+        }
+        .hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+        .legend {
+            display: flex;
+            gap: 16px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+        .color-box {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📊 身体部位划分可视化</h2>
+
+        <div class="tab">
+            <button class="active" onclick="switchTab('existing')">已有数据</button>
+            <button onclick="switchTab('upload')">上传新数据</button>
+        </div>
+
+        <div id="panel-existing" class="panel active">
+            <div class="row">
+                <label style="font-weight:bold;">选择样本:</label>
+                <select id="sampleSelect" style="flex:1;min-width:150px;"></select>
+                <button onclick="loadSample()">加载</button>
+            </div>
+        </div>
+
+        <div id="panel-upload" class="panel">
+            <div class="row">
+                <label style="font-weight:bold;">睡姿:
+                    <select id="uploadPose">
+                        <option value="0">仰卧</option>
+                        <option value="1">俯卧</option>
+                        <option value="2">左侧卧</option>
+                        <option value="3">右侧卧</option>
+                    </select>
+                </label>
+                <label style="font-weight:bold;">JSON:
+                    <input type="file" id="fileInput" accept=".json" style="display:inline-block;width:auto;">
+                </label>
+                <button onclick="uploadPredict()">预测</button>
+            </div>
+            <div class="hint">📌 JSON格式: {"data": "0.0,0.0,...", "sleep_pos": 0}</div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><span class="color-box" style="background:#e74c3c;"></span> 肩</div>
+            <div class="legend-item"><span class="color-box" style="background:#e67e22;"></span> 背</div>
+            <div class="legend-item"><span class="color-box" style="background:#f1c40f;"></span> 腰</div>
+            <div class="legend-item"><span class="color-box" style="background:#2ecc71;"></span> 臀</div>
+            <div class="legend-item"><span class="color-box" style="background:#3498db;"></span> 大腿</div>
+        </div>
+
+        <div class="image-container">
+            <img id="resultImage" src="" alt="请加载数据">
+        </div>
+        <div class="info" id="infoDisplay">请选择样本或上传数据</div>
+    </div>
+
+    <script>
+        let currentData = null;
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab button').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.tab button[onclick*="${tab}"]`).classList.add('active');
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`panel-${tab}`).classList.add('active');
+        }
+
+        function loadSample() {
+            const idx = document.getElementById('sampleSelect').value;
+            document.getElementById('infoDisplay').textContent = '加载中...';
+            fetch(`/api/sample/${idx}`)
+                .then(r => r.json())
+                .then(data => {
+                    currentData = {
+                        pressure: data.pressure,
+                        sleep_pose: data.sleep_pose,
+                        region: data.region,
+                        people_name: data.people_name,
+                        sleep_name: data.sleep_name,
+                        action: data.action
+                    };
+                    document.getElementById('infoDisplay').textContent =
+                        `${data.people_name} | ${data.sleep_name} | 动作${data.action}`;
+                    doPredict(currentData);
+                });
+        }
+
+        function uploadPredict() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) { alert('请选择JSON文件'); return; }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    const dataStr = json.data || json.pressure || '';
+                    if (!dataStr) { alert('缺少 data 字段'); return; }
+                    const vals = dataStr.split(',').map(Number);
+                    if (vals.length !== 1056) { alert('数据长度应为1056'); return; }
+                    const sleep_pose = json.sleep_pos !== undefined ?
+                        json.sleep_pos :
+                        parseInt(document.getElementById('uploadPose').value);
+                    const names = ['仰卧', '俯卧', '左侧卧', '右侧卧'];
+                    currentData = {
+                        pressure: vals,
+                        sleep_pose: sleep_pose,
+                        region: null,
+                        people_name: '上传',
+                        sleep_name: names[sleep_pose],
+                        action: '-'
+                    };
+                    document.getElementById('infoDisplay').textContent =
+                        `📤 上传数据 | 睡姿: ${names[sleep_pose]}`;
+                    doPredict(currentData);
+                } catch (err) {
+                    alert('JSON解析失败: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function doPredict(data) {
+            const payload = {
+                pressure: data.pressure,
+                sleep_pose: data.sleep_pose,
+                people_name: data.people_name
+            };
+            if (data.region) payload.region = data.region;
+
+            fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.image) {
+                        document.getElementById('resultImage').src = 'data:image/png;base64,' + result.image;
+                    }
+                });
+        }
+
+        fetch('/api/samples')
+            .then(r => r.json())
+            .then(data => {
+                const sel = document.getElementById('sampleSelect');
+                data.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.index;
+                    opt.textContent = `${s.people_name} | ${s.sleep_name} | 动作${s.action}`;
+                    sel.appendChild(opt);
+                });
+                if (data.length > 0) loadSample();
+            });
+    </script>
+</body>
+</html>
