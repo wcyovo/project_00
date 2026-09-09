@@ -1,0 +1,57 @@
+{
+  "api": "model_meta",
+  "input_dim": 1056,
+  "embed_dim": 64,
+  "train_users": [
+    "SAI",
+    "dgs",
+    "dwk1",
+    "ghb",
+    "ghx",
+    "gjh",
+    "hxr",
+    "hyh",
+    "lcy",
+    "ljy",
+    "lrc",
+    "lxy1",
+    "lyp",
+    "lzx1",
+    "sbr",
+    "syz",
+    "wc1",
+    "wcy",
+    "whl",
+    "wjy",
+    "yl",
+    "zhr",
+    "zmw"
+  ],
+  "test_users": [
+    "gzy",
+    "hpy",
+    "jhy",
+    "ltr",
+    "nys",
+    "stanl",
+    "tjs",
+    "whc",
+    "wzh",
+    "zxx"
+  ],
+  "scaler_mean_first5": [
+    3.7264715191029323,
+    5.616275512956158,
+    4.649909514611815,
+    4.398023993307406,
+    4.56611441933287
+  ],
+  "scaler_scale_first5": [
+    11.779626002537594,
+    11.184167075191976,
+    12.52702754835775,
+    14.913723007024021,
+    13.579328552542114
+  ],
+  "generated_at": "2026-09-09T19:29:58"
+}
