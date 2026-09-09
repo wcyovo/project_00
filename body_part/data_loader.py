@@ -14,10 +14,8 @@ class BodyPartDataset(Dataset):
         with open(json_path, 'r', encoding='utf-8') as f:
             self.all_samples = json.load(f)
 
-        # ===== 按睡姿分层随机划分 =====
         np.random.seed(42)
 
-        # 按睡姿分组
         pose_groups = {}
         for s in self.all_samples:
             pose = s['sleep_pos']
@@ -45,25 +43,20 @@ class BodyPartDataset(Dataset):
         data_vals = [float(x) for x in s['data'].split(',')]
         pressure = np.array(data_vals, dtype=np.float32).reshape(44, 24)
 
-        # ===== 数据增强（训练集） =====
         if self.train:
-            # 噪声
             noise = np.random.randn(44, 24) * 0.02 * (np.max(pressure) + 1e-6)
             pressure = pressure + noise
             pressure = np.clip(pressure, 0, None)
 
-            # 旋转（稍微加大）
             angle = random.uniform(-5, 5)
             pressure = rotate(pressure, angle, reshape=False, order=1)
             pressure = np.clip(pressure, 0, None)
-
-            # 平移
+   
             shift_x = random.randint(-2, 2)
             shift_y = random.randint(-2, 2)
             pressure = np.roll(pressure, shift_x, axis=1)
             pressure = np.roll(pressure, shift_y, axis=0)
 
-        # region 解析
         region_vals = s['region'].split()
         x_coords = [float(v) for v in region_vals[:10]]
         y_coords = [float(v) for v in region_vals[12:22]]
