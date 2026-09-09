@@ -14,9 +14,9 @@ namespace SmartBed.Visualization
 
         public int Rows = BedConfig.Rows;
         public int Cols = BedConfig.Cols;
-        public float cellSize = 0.35f;      // 每格世界尺寸
-        public float maxIndent = 1.4f;       // 满压时的最大下凹深度
-        public RectInt viewSize = new RectInt(0, 0, 460, 224);
+        public float cellSize = 0.45f;      // 每格世界尺寸
+        public float maxIndent = 2.0f;       // 满压时的最大下凹深度
+        public RectInt viewSize = new RectInt(0, 0, 512, 256);
 
         private Mesh mesh;
         private MeshFilter mf;
@@ -99,10 +99,10 @@ namespace SmartBed.Visualization
             cam.cullingMask = 1 << BedLayer;
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.04f, 0.05f, 0.08f);
-            cam.fieldOfView = 42f;
+            cam.fieldOfView = 46f;
             rt = new RenderTexture(viewSize.width, viewSize.height, 16);
             cam.targetTexture = rt;
-            cam.transform.position = new Vector3(11f, 16f, 14f);
+            cam.transform.position = new Vector3(9f, 15f, 16f);
             cam.transform.LookAt(new Vector3(0f, -1f, 0f));
         }
 
