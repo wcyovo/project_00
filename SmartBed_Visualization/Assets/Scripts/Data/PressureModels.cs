@@ -48,6 +48,7 @@ namespace SmartBed.Data
         public List<float> pressure;   // 1056 个浮点，行优先
         public string sleepPosture;    // 仰卧/俯卧/左侧卧/右侧卧
         public int sleepPoseIndex;
+        public string currentUser;      // 当前用户（来自用户识别模块；可空）
         public List<BodyRegion> bodyRegions;
         public List<Airbag> airbags;
         public MetricsData metrics;

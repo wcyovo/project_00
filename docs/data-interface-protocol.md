@@ -20,6 +20,7 @@
   "pressure": [],
   "sleepPosture": "仰卧",
   "sleepPoseIndex": 0,
+  "currentUser": "SAI",
   "bodyRegions": [],
   "airbags": [],
   "metrics": {}
@@ -35,6 +36,7 @@
 | `pressure` | float[] | 是 | **1056 个浮点**，44 行 × 24 列，**行优先**展平，单位 kPa（0–100 归一化） |
 | `sleepPosture` | string | 是 | 睡姿文案：`仰卧`/`俯卧`/`左侧卧`/`右侧卧` |
 | `sleepPoseIndex` | int | 是 | 睡姿索引：0 仰卧, 1 俯卧, 2 左侧卧, 3 右侧卧 |
+| `currentUser` | string | 否 | 当前用户（来自用户识别模块，如 `SAI`/`dgs`；可空） |
 | `bodyRegions` | object[] | 否 | 身体部位框（见 2.2），可视化端可为空 |
 | `airbags` | object[] | 是 | 气囊当前状态（见 2.3） |
 | `metrics` | object | 否 | 压力指标（见 2.4），端上可推算以兜底 |
@@ -76,6 +78,8 @@
 - **pressure 的顺序**：第 `r` 行第 `c` 列 → 索引 `r * 24 + c`。
 - **pressure 的量程**：统一归一化到 0–100 kPa；算法端若原始读数是 0–300，请先线性映射到 0–100 再发送。
 - **sleepPosture** 与 **sleepPoseIndex** 必须一致（二者冗余，便于显示文案）。
+- **airbags**：若算法端未提供，可视化端会**依据压力分布自推**（区域压力越高该气囊越放气减压）；组员/硬件若能提供真实气囊状态则优先使用。
+- **currentUser**：可选；来自用户识别模块的 `recognized_user`，未识别时可为空（可视化端显示 `--`）。
 
 ## 4. M1 阶段传输约定（HTTP 轮询）
 

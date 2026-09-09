@@ -26,7 +26,7 @@ namespace SmartBed.UI
         private RawImage sensorChart;
         private RawImage bed3dImage;
         private Bed3DView bed3d;
-        private Text titleText, postureText, metricsText, airbagText, frameText;
+        private Text titleText, userText, postureText, metricsText, airbagText, frameText;
         private Texture2D heatTex;
         private Texture2D overlayTex;
         private Texture2D airbagChartTex;
@@ -84,8 +84,9 @@ namespace SmartBed.UI
             // 1c) 3D 床垫形变
             if (bed3d != null) bed3d.UpdatePressure(matrix);
 
-            // 1b) 支撑叠加层（身体部位框 + 气囊充气着色）
-            overlayTex = SupportOverlay.Build(overlayTex, msg.airbags, msg.bodyRegions);
+            // 1b) 支撑叠加层（身体部位框 + 气囊充气着色）—— 气囊量由可视化自推
+            List<Airbag> airbags = AirbagStrategy.Derive(matrix);
+            overlayTex = SupportOverlay.Build(overlayTex, airbags, msg.bodyRegions);
             overlayImage.texture = overlayTex;
 
             // 2) 压力指标（本地计算，权威来源）
@@ -98,27 +99,32 @@ namespace SmartBed.UI
             // 3) 睡姿
             postureText.text = msg.sleepPosture ?? "--";
 
-            // 4) 气囊状态
-            airbagText.text = BuildAirbagText(msg.airbags);
+            // 4) 当前用户（来自用户识别模块，可空）
+            userText.text = "当前用户: " + (string.IsNullOrEmpty(msg.currentUser) ? "--" : msg.currentUser);
 
-            // 5) 帧号
+            // 5) 气囊状态（自推策略）
+            airbagText.text = BuildAirbagText(airbags);
+
+            // 6) 帧号
             frameText.text =
                 "帧号: " + msg.frame +
                 "   时间: " + System.DateTimeOffset.FromUnixTimeMilliseconds((long)(msg.timestamp * 1000)).LocalDateTime.ToString("HH:mm:ss");
 
-            // 6) R4 动态曲线：追加历史并重绘
-            AppendHistory(msg, matrix);
+            // 7) R4 动态曲线：追加历史并重绘
+            AppendHistory(airbags, matrix);
             DrawCharts();
         }
 
-        private void AppendHistory(PressureMessage msg, float[] matrix)
+        private void AppendHistory(List<Airbag> airbags, float[] matrix)
         {
-            // 气囊量
+            // 气囊量（自推）
             float[] levels = new float[AirbagIds.Length];
-            if (msg.airbags != null)
+            for (int i = 0; i < AirbagIds.Length; i++)
             {
-                for (int i = 0; i < AirbagIds.Length && i < msg.airbags.Count; i++)
-                    levels[i] = msg.airbags[i].level;
+                for (int j = 0; j < airbags.Count; j++)
+                {
+                    if (airbags[j].id == AirbagIds[i]) { levels[i] = airbags[j].level; break; }
+                }
             }
             levelHistory.Add(levels);
 
@@ -261,6 +267,11 @@ namespace SmartBed.UI
 
         private void SetupInfoPanel(RectTransform info, Font font)
         {
+            // 当前用户（顶部）
+            userText = UiHelper.CreateText(info, "CurrentUser", "当前用户: --", font, 20, new Color(0.95f, 0.85f, 0.4f), TextAnchor.MiddleLeft);
+            userText.rectTransform.anchoredPosition = new Vector2(-110, 372);
+            userText.rectTransform.sizeDelta = new Vector2(360, 30);
+
             // 睡姿
             var poseTitle = UiHelper.CreateText(info, "PoseTitle", "当前睡姿", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
             poseTitle.rectTransform.anchoredPosition = new Vector2(-230, 340);

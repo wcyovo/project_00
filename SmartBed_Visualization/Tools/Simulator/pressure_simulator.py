@@ -152,8 +152,9 @@ def current_airbags(t):
 class FrameProducer:
     """后台线程：按 rate 推进帧序号，保存“当前最新帧”。"""
 
-    def __init__(self, frames, pose_index, pose_name, rate, loop):
+    def __init__(self, frames, user_name, pose_index, pose_name, rate, loop):
         self.frames = frames
+        self.user_name = user_name
         self.pose_index = pose_index
         self.pose_name = pose_name
         self.rate = rate
@@ -170,6 +171,7 @@ class FrameProducer:
             "pressure": flat,
             "sleepPosture": self.pose_name,
             "sleepPoseIndex": self.pose_index,
+            "currentUser": self.user_name,
             "bodyRegions": derive_body_regions(frame),
             "airbags": current_airbags(time.time()),
             "metrics": compute_metrics([[normalize(v) for v in row] for row in frame]),
@@ -223,7 +225,7 @@ def main():
     pose_index, pose_name = NUM_TO_POSE.get(action, (0, "仰卧"))
     print(f"[信息] 用户={name} 动作={action} 睡姿={pose_name}({pose_index})")
 
-    producer = FrameProducer(frames, pose_index, pose_name, args.rate, args.loop)
+    producer = FrameProducer(frames, name, pose_index, pose_name, args.rate, args.loop)
     threading.Thread(target=producer.run, daemon=True).start()
 
     class Handler(BaseHTTPRequestHandler):
