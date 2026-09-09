@@ -62,12 +62,13 @@ namespace SmartBed.Visualization
                 for (int c = 0; c < Cols - 1; c++)
                 {
                     int i = r * Cols + c;
+                    // 逆时针绕序，使表面法线朝上（相机从上往下才能看到）
                     tris[t++] = i;
-                    tris[t++] = i + 1;
                     tris[t++] = i + Cols;
                     tris[t++] = i + 1;
+                    tris[t++] = i + 1;
+                    tris[t++] = i + Cols;
                     tris[t++] = i + 1 + Cols;
-                    tris[t++] = i + Cols;
                 }
             }
 
@@ -101,8 +102,8 @@ namespace SmartBed.Visualization
             cam.fieldOfView = 42f;
             rt = new RenderTexture(viewSize.width, viewSize.height, 16);
             cam.targetTexture = rt;
-            cam.transform.position = new Vector3(6f, 12f, 26f);
-            cam.transform.LookAt(new Vector3(0f, -2f, 0f));
+            cam.transform.position = new Vector3(11f, 16f, 14f);
+            cam.transform.LookAt(new Vector3(0f, -1f, 0f));
         }
 
         public void UpdatePressure(float[] matrix)
