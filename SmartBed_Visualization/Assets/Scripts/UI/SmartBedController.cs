@@ -276,43 +276,45 @@ namespace SmartBed.UI
 
         private void SetupInfoPanel(RectTransform info, Font font)
         {
-            // 当前用户（顶部）
+            // 用 VerticalLayoutGroup 自动纵向排布，避免挤压/重叠
+            var vlg = info.gameObject.AddComponent<VerticalLayoutGroup>();
+            vlg.childAlignment = TextAnchor.UpperLeft;
+            vlg.spacing = 6f;
+            vlg.padding = new RectOffset(24, 24, 18, 18);
+            vlg.childControlHeight = true;
+            vlg.childControlWidth = false;
+            vlg.childForceExpandHeight = false;
+            vlg.childForceExpandWidth = false;
+
+            // 当前用户
             userText = UiHelper.CreateText(info, "CurrentUser", "当前用户: --", font, 20, new Color(0.95f, 0.85f, 0.4f), TextAnchor.MiddleLeft);
-            userText.rectTransform.anchoredPosition = new Vector2(-110, 372);
-            userText.rectTransform.sizeDelta = new Vector2(360, 30);
+            userText.rectTransform.sizeDelta = new Vector2(460, 30);
 
-            // 睡姿（架构：用户睡姿）
+            // 用户睡姿
             var poseTitle = UiHelper.CreateText(info, "PoseTitle", "用户睡姿", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
-            poseTitle.rectTransform.anchoredPosition = new Vector2(-230, 340);
-            poseTitle.rectTransform.sizeDelta = new Vector2(200, 30);
+            poseTitle.rectTransform.sizeDelta = new Vector2(460, 26);
 
-            postureText = UiHelper.CreateText(info, "PoseValue", "--", font, 42, Color.white, TextAnchor.MiddleLeft);
-            postureText.rectTransform.anchoredPosition = new Vector2(-110, 300);
-            postureText.rectTransform.sizeDelta = new Vector2(300, 60);
+            postureText = UiHelper.CreateText(info, "PoseValue", "--", font, 40, Color.white, TextAnchor.MiddleLeft);
+            postureText.rectTransform.sizeDelta = new Vector2(460, 52);
 
-            // 指标
+            // 压力指标
             var mTitle = UiHelper.CreateText(info, "MetricsTitle", "压力指标", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
-            mTitle.rectTransform.anchoredPosition = new Vector2(-230, 220);
-            mTitle.rectTransform.sizeDelta = new Vector2(200, 30);
+            mTitle.rectTransform.sizeDelta = new Vector2(460, 26);
 
-            metricsText = UiHelper.CreateText(info, "Metrics", "--", font, 24, Color.white, TextAnchor.MiddleLeft);
-            metricsText.rectTransform.anchoredPosition = new Vector2(-110, 160);
-            metricsText.rectTransform.sizeDelta = new Vector2(360, 140);
+            metricsText = UiHelper.CreateText(info, "Metrics", "--", font, 22, Color.white, TextAnchor.UpperLeft);
+            metricsText.rectTransform.sizeDelta = new Vector2(460, 84);
 
-            // 气囊（架构：气垫状态）
+            // 气垫状态
             var aTitle = UiHelper.CreateText(info, "AirTitle", "气垫状态", font, 18, new Color(0.7f, 0.7f, 0.7f), TextAnchor.MiddleLeft);
-            aTitle.rectTransform.anchoredPosition = new Vector2(-240, 120);
-            aTitle.rectTransform.sizeDelta = new Vector2(220, 30);
+            aTitle.rectTransform.sizeDelta = new Vector2(460, 26);
 
             airbagText = UiHelper.CreateText(info, "Airbags", "--", font, 18, Color.white, TextAnchor.UpperLeft);
-            airbagText.rectTransform.anchoredPosition = new Vector2(-240, 90);
-            airbagText.rectTransform.sizeDelta = new Vector2(400, 240);
+            airbagText.rectTransform.sizeDelta = new Vector2(460, 170);
             airbagText.horizontalOverflow = HorizontalWrapMode.Overflow;
 
             // 帧号
-            frameText = UiHelper.CreateText(info, "Frame", "--", font, 16, new Color(0.6f, 0.6f, 0.6f), TextAnchor.MiddleCenter);
-            frameText.rectTransform.anchoredPosition = new Vector2(0, -330);
-            frameText.rectTransform.sizeDelta = new Vector2(400, 30);
+            frameText = UiHelper.CreateText(info, "Frame", "--", font, 16, new Color(0.6f, 0.6f, 0.6f), TextAnchor.MiddleLeft);
+            frameText.rectTransform.sizeDelta = new Vector2(460, 26);
         }
 
         private static void StretchFull(RectTransform rt)
