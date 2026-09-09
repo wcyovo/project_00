@@ -76,7 +76,7 @@ namespace SmartBed.UI
             // 5) 帧号
             frameText.text =
                 "帧号: " + msg.frame +
-                "   时间: " + System.DateTime.FromUnixTimeMilliseconds((long)(msg.timestamp * 1000)).ToString("HH:mm:ss");
+                "   时间: " + System.DateTimeOffset.FromUnixTimeMilliseconds((long)(msg.timestamp * 1000)).LocalDateTime.ToString("HH:mm:ss");
         }
 
         private static string BuildAirbagText(System.Collections.Generic.List<Airbag> airbags)
@@ -115,7 +115,7 @@ namespace SmartBed.UI
 
             // 热力图（背景面板 + 子级纹理）
             var heatPanel = UiHelper.CreatePanel(root, "HeatPanel", new Color(0.12f, 0.12f, 0.16f), new Vector2(480, 880));
-            heatPanel.rectTransform.anchoredPosition = new Vector2(-500, -30);
+            heatPanel.anchoredPosition = new Vector2(-500, -30);
             var texGo = new GameObject("Tex", typeof(RectTransform));
             texGo.transform.SetParent(heatPanel, false);
             heatImage = texGo.AddComponent<RawImage>();
@@ -128,7 +128,7 @@ namespace SmartBed.UI
 
             // 右侧信息栏
             var info = UiHelper.CreatePanel(root, "Info", new Color(0.08f, 0.08f, 0.11f), new Vector2(520, 780));
-            info.rectTransform.anchoredPosition = new Vector2(480, 0);
+            info.anchoredPosition = new Vector2(480, 0);
 
             SetupInfoPanel(info, font);
         }
