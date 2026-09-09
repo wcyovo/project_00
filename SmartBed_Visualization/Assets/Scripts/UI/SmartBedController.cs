@@ -82,7 +82,7 @@ namespace SmartBed.UI
         private static string BuildAirbagText(System.Collections.Generic.List<Airbag> airbags)
         {
             if (airbags == null || airbags.Count == 0) return "气囊: --";
-            var sb = new System.Text.StringBuilder("气囊状态\n");
+            var sb = new System.Text.StringBuilder();
             foreach (var a in airbags)
                 sb.Append("#").Append(a.id).Append(": ").Append(a.level.ToString("F0")).Append("%\n");
             return sb.ToString().TrimEnd('\n');
