@@ -81,11 +81,13 @@ namespace SmartBed.UI
             heatTex = PressureHeatmap.Build(heatTex, matrix);
             heatImage.texture = heatTex;
 
-            // 1c) 3D 床垫形变
-            if (bed3d != null) bed3d.UpdatePressure(matrix);
-
-            // 1b) 支撑叠加层（身体部位框 + 气囊充气着色）—— 气囊量由可视化自推
+            // 1b) 气垫量（可视化自推，供 3D / 叠加 / 曲线共用）
             List<Airbag> airbags = AirbagStrategy.Derive(matrix);
+
+            // 1c) 3D 床垫：压力下凹 + 气垫充气抬升
+            if (bed3d != null) bed3d.UpdateState(matrix, airbags);
+
+            // 1d) 支撑叠加层（身体部位框 + 气垫充气着色）
             overlayTex = SupportOverlay.Build(overlayTex, airbags, msg.bodyRegions);
             overlayImage.texture = overlayTex;
 

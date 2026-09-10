@@ -1,21 +1,25 @@
+using System.Collections.Generic;
 using UnityEngine;
 using SmartBed.Data;
 
 namespace SmartBed.Visualization
 {
     /// <summary>
-    /// 3D 床垫支撑形变视图（R1 进阶）：根据 44x24 压力矩阵使床垫网格下凹，
-    /// 下凹深度正比于该处压力，表面贴上压力热力图颜色，直观展示“支撑效果”。
-    /// 独立相机只渲染本网格到 RenderTexture，供 UI RawImage 显示。
+    /// 3D 床垫支撑形变视图（R1）：床垫网格高度由两个因素共同决定 ——
+    /// ① 压力：人体压下去（越压越凹）；
+    /// ② 气垫充气量：该气垫区抬升（充气多→抬得高，体现“各区气垫不同高度/软硬度”）。
+    /// 表面贴压力热力图颜色，独立相机渲染到 RenderTexture 供 UI 显示。
     /// </summary>
     public class Bed3DView : MonoBehaviour
     {
         private const int BedLayer = 30;
+        private static readonly int[] AirbagIds = { 12, 13, 40, 41, 42, 64, 65, 66 };
 
         public int Rows = BedConfig.Rows;
         public int Cols = BedConfig.Cols;
         public float cellSize = 0.45f;      // 每格世界尺寸
-        public float maxIndent = 2.0f;       // 满压时的最大下凹深度
+        public float maxIndent = 1.8f;       // 满压时的最大下凹深度
+        public float maxLift = 0.9f;         // 气垫满充时的最大抬升高度
         public RectInt viewSize = new RectInt(0, 0, 512, 256);
 
         private Mesh mesh;
@@ -26,6 +30,8 @@ namespace SmartBed.Visualization
         private Vector3[] verts;
         private Vector2[] uvs;
         private Texture2D heatCache;
+        private int[] cellZoneId;            // 每格所属气垫区索引（-1 = 不属于任何气垫）
+        private readonly float[] airbagLevels = new float[8];
 
         public RenderTexture RenderTexture => rt;
 
@@ -53,6 +59,18 @@ namespace SmartBed.Visualization
                     int i = r * Cols + c;
                     verts[i] = new Vector3(c * cellSize, 0f, r * cellSize);
                     uvs[i] = new Vector2((float)c / (Cols - 1), (float)r / (Rows - 1));
+                }
+            }
+
+            // 预计算每格所属气垫区（用于按充气量抬升）
+            cellZoneId = new int[n];
+            for (int i = 0; i < n; i++)
+            {
+                cellZoneId[i] = -1;
+                int rr = i / Cols, cc = i % Cols;
+                for (int k = 0; k < AirbagIds.Length; k++)
+                {
+                    if (ZoneMap.IsInZone(AirbagIds[k], rr, cc)) { cellZoneId[i] = k; break; }
                 }
             }
 
@@ -106,19 +124,33 @@ namespace SmartBed.Visualization
             cam.transform.LookAt(new Vector3(0f, -1f, 0f));
         }
 
-        public void UpdatePressure(float[] matrix)
+        /// <summary>更新床垫状态：压力(下凹) + 气垫充气(抬升)。</summary>
+        public void UpdateState(float[] matrix, List<Airbag> airbags)
         {
+            // 1) 更新各气垫充气量
+            if (airbags != null)
+            {
+                for (int k = 0; k < AirbagIds.Length; k++)
+                {
+                    airbagLevels[k] = 0f;
+                    for (int j = 0; j < airbags.Count; j++)
+                    {
+                        if (airbags[j].id == AirbagIds[k]) { airbagLevels[k] = airbags[j].level; break; }
+                    }
+                }
+            }
+
             if (matrix == null || mesh == null) return;
             if (matrix.Length < Rows * Cols) return;
 
-            for (int r = 0; r < Rows; r++)
+            // 2) 高度 = -压力下凹 + 气垫抬升
+            for (int i = 0; i < verts.Length; i++)
             {
-                for (int c = 0; c < Cols; c++)
-                {
-                    int i = r * Cols + c;
-                    float p = Mathf.Clamp01(matrix[i] / BedConfig.MaxPressure);
-                    verts[i].y = -p * maxIndent;
-                }
+                float p = Mathf.Clamp01(matrix[i] / BedConfig.MaxPressure);
+                float lift = 0f;
+                int z = (cellZoneId != null && i < cellZoneId.Length) ? cellZoneId[i] : -1;
+                if (z >= 0) lift = (airbagLevels[z] / 100f) * maxLift;
+                verts[i].y = -p * maxIndent + lift;
             }
             mesh.vertices = verts;
             mesh.RecalculateNormals();
